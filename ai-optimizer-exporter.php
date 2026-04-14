@@ -3,7 +3,7 @@
 /**
  * Plugin Name: AI Optimizer Exporter
  * Description: Exports posts and pages in a token-efficient XML format for LLM parsing, and provides SEO suggestions.
- * Version: 4.0.1
+ * Version: 5.0.0
  * Author: Forwwward
  * Author URI:  https://forwwward.co
  */
@@ -28,7 +28,9 @@ if (! defined('ABSPATH')) exit;
 
 ob_start();
 
+// ==========================================
 // 1. Create the Admin Menu
+// ==========================================
 add_action('admin_menu', 'aie_create_menu');
 function aie_create_menu()
 {
@@ -42,7 +44,60 @@ function aie_create_menu()
     );
 }
 
-// 2. The Settings Page UI & Logic
+// ==========================================
+// 2. Add AI Description Meta Box to Posts/Pages
+// ==========================================
+add_action('add_meta_boxes', 'aie_register_ai_description_meta_box');
+function aie_register_ai_description_meta_box()
+{
+    $screens = ['post', 'page'];
+    foreach ($screens as $screen) {
+        add_meta_box(
+            'aie_ai_description_box',                 // Unique ID
+            'Describe this for AIs and LLMs',         // Box title
+            'aie_ai_description_meta_box_html',       // Content callback
+            $screen,                                  // Post type
+            'normal',                                 // Context
+            'high'                                    // Priority
+        );
+    }
+}
+
+function aie_ai_description_meta_box_html($post)
+{
+    $value = get_post_meta($post->ID, '_aie_ai_description', true);
+    wp_nonce_field('aie_ai_description_nonce_action', 'aie_ai_description_nonce');
+?>
+    <p>Provide a concise summary or specific context about this content, explicitly tailored for AI/LLM ingestion. This will be included in your XML export.</p>
+    <textarea name="aie_ai_description_field" id="aie_ai_description_field" rows="4" style="width:100%;"><?php echo esc_textarea($value); ?></textarea>
+<?php
+}
+
+add_action('save_post', 'aie_save_ai_description_meta_data');
+function aie_save_ai_description_meta_data($post_id)
+{
+    // Check nonce for security
+    if (!isset($_POST['aie_ai_description_nonce']) || !wp_verify_nonce($_POST['aie_ai_description_nonce'], 'aie_ai_description_nonce_action')) {
+        return;
+    }
+    // Ignore autosaves
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+    // Check user permissions
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+    // Save the data
+    if (isset($_POST['aie_ai_description_field'])) {
+        $data = sanitize_textarea_field($_POST['aie_ai_description_field']);
+        update_post_meta($post_id, '_aie_ai_description', $data);
+    }
+}
+
+// ==========================================
+// 3. The Settings Page UI & Logic
+// ==========================================
 function aie_settings_page()
 {
     // Security check
@@ -51,6 +106,7 @@ function aie_settings_page()
     // Grab current form state
     $action = isset($_POST['aie_action']) ? sanitize_text_field($_POST['aie_action']) : '';
     $post_type = isset($_POST['aie_export_type']) ? sanitize_text_field($_POST['aie_export_type']) : 'post';
+    $skip_content = isset($_POST['aie_skip_content']);
 
 ?>
     <div class="wrap">
@@ -68,6 +124,13 @@ function aie_settings_page()
                 </label>
                 <label style="font-size: 14px;">
                     <input type="radio" name="aie_export_type" value="page" <?php checked($post_type, 'page'); ?>> Website Pages
+                </label>
+            </fieldset>
+
+            <h3 style="margin-top:0;">Export Options</h3>
+            <fieldset style="margin-bottom: 25px;">
+                <label style="font-size: 14px;">
+                    <input type="checkbox" name="aie_skip_content" value="1" <?php checked($skip_content); ?>> Skip page/post content (Speeds up export and saves tokens by only exporting metadata and AI descriptions)
                 </label>
             </fieldset>
 
@@ -108,7 +171,13 @@ function aie_settings_page()
                     $xml .= "    <description>Token-optimized export from $site_name for: $post_type.</description>\n";
                     $xml .= "    <schema>\n";
                     $xml .= "      <f tag='t'>Title</f>\n";
-                    $xml .= "      <f tag='b'>Body Content (Text only)</f>\n";
+
+                    // Conditionally add Body Content to Schema
+                    if (!$skip_content) {
+                        $xml .= "      <f tag='b'>Body Content (Text only)</f>\n";
+                    }
+
+                    $xml .= "      <f tag='aid'>AI Description</f>\n";
                     $xml .= "      <f tag='mt'>Meta Title (Yoast or Post Title fallback)</f>\n";
                     $xml .= "      <f tag='md'>Meta Description (Yoast or Excerpt fallback)</f>\n";
                     $xml .= "      <f tag='kw'>Yoast Focus Keyword</f>\n";
@@ -124,15 +193,21 @@ function aie_settings_page()
                         $query->the_post();
                         $post_id = get_the_ID();
 
-                        $content = get_the_content();
-                        $content = strip_shortcodes($content);
-                        $content = wp_strip_all_tags($content);
-                        $content = preg_replace('/\s+/', ' ', $content);
-                        $content = trim($content);
+                        // Fetch Content only if we aren't skipping it
+                        $content = '';
+                        if (!$skip_content) {
+                            $content = get_the_content();
+                            $content = strip_shortcodes($content);
+                            $content = wp_strip_all_tags($content);
+                            $content = preg_replace('/\s+/', ' ', $content);
+                            $content = trim($content);
+                        }
 
+                        // Yoast & Custom Metadata
                         $yoast_title = get_post_meta($post_id, '_yoast_wpseo_title', true);
                         $yoast_desc  = get_post_meta($post_id, '_yoast_wpseo_metadesc', true);
                         $yoast_kw    = get_post_meta($post_id, '_yoast_wpseo_focuskw', true);
+                        $ai_desc     = get_post_meta($post_id, '_aie_ai_description', true);
 
                         $final_title = !empty($yoast_title) ? $yoast_title : get_the_title();
                         $final_desc  = !empty($yoast_desc) ? $yoast_desc : get_the_excerpt();
@@ -140,7 +215,12 @@ function aie_settings_page()
 
                         $xml .= "    <item>\n";
                         $xml .= "      <t>" . esc_xml(get_the_title()) . "</t>\n";
-                        $xml .= "      <b>" . esc_xml($content) . "</b>\n";
+
+                        if (!$skip_content) {
+                            $xml .= "      <b>" . esc_xml($content) . "</b>\n";
+                        }
+
+                        $xml .= "      <aid>" . esc_xml($ai_desc) . "</aid>\n";
                         $xml .= "      <mt>" . esc_xml($final_title) . "</mt>\n";
                         $xml .= "      <md>" . esc_xml($final_desc) . "</md>\n";
                         $xml .= "      <kw>" . esc_xml($yoast_kw) . "</kw>\n";
@@ -183,7 +263,7 @@ function aie_settings_page()
                         $post_id = get_the_ID();
                         $missing = [];
 
-                        // Check required Yoast fields
+                        // Check required Yoast & AI fields
                         if (empty(get_post_meta($post_id, '_yoast_wpseo_title', true))) {
                             $missing[] = 'Meta Title';
                         }
@@ -192,6 +272,9 @@ function aie_settings_page()
                         }
                         if (empty(get_post_meta($post_id, '_yoast_wpseo_focuskw', true))) {
                             $missing[] = 'Focus Keyword';
+                        }
+                        if (empty(get_post_meta($post_id, '_aie_ai_description', true))) {
+                            $missing[] = 'AI Description';
                         }
 
                         // If anything is missing, push to suggestions array
@@ -209,14 +292,14 @@ function aie_settings_page()
                     echo '<div style="max-width: 900px;">';
 
                     if (empty($suggestions)) {
-                        echo '<div class="notice notice-success"><p>🎉 Great job! All ' . $query->found_posts . ' published ' . esc_html($post_type) . 's have their Yoast Meta Title, Description, and Focus Keyword filled out.</p></div>';
+                        echo '<div class="notice notice-success"><p>🎉 Great job! All ' . $query->found_posts . ' published ' . esc_html($post_type) . 's have their Yoast Data and AI Description filled out.</p></div>';
                     } else {
-                        echo '<h2 style="margin-top: 30px;">SEO Suggestions for Published ' . esc_html(ucfirst($post_type)) . 's</h2>';
-                        echo '<p>Found <strong>' . count($suggestions) . '</strong> published ' . esc_html($post_type) . 's missing crucial SEO metadata.</p>';
+                        echo '<h2 style="margin-top: 30px;">SEO & AI Suggestions for Published ' . esc_html(ucfirst($post_type)) . 's</h2>';
+                        echo '<p>Found <strong>' . count($suggestions) . '</strong> published ' . esc_html($post_type) . 's missing crucial metadata.</p>';
                         echo '<table class="wp-list-table widefat fixed striped" style="margin-top: 15px; border: 1px solid #ccd0d4;">';
                         echo '<thead><tr>';
                         echo '<th>Post/Page Title</th>';
-                        echo '<th style="width: 30%;">Missing Fields</th>';
+                        echo '<th style="width: 40%;">Missing Fields</th>';
                         echo '<th style="width: 150px;">Action</th>';
                         echo '</tr></thead>';
                         echo '<tbody>';
