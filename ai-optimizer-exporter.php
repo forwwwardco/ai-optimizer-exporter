@@ -12,7 +12,7 @@
  */
 add_filter('auto_update_plugin', function ($update, $item) {
     // Replace 'ai-optimizer-exporter' with your actual plugin folder name (slug)
-    if (isset($item->slug) && $item->slug === 'ai-optimizer-exporter') {
+    if (isset($item->slug) && $item->slug === 'ai-optimizer-exporter-main') {
         return true; // Always auto-update this plugin
     }
     return $update; // Use default settings for other plugins
