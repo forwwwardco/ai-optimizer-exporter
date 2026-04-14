@@ -3,8 +3,9 @@
 /**
  * Plugin Name: AI Optimizer & Exporter
  * Description: Exports posts and pages in a token-efficient XML format for LLM parsing, and provides SEO suggestions.
- * Version: 3.0.1
+ * Version: 3.0.2
  * Author: Forwwward
+ * Author URI:  https://forwwward.co
  */
 
 require 'plugin-update-checker-master/plugin-update-checker.php';
