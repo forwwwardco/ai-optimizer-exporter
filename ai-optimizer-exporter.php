@@ -3,7 +3,7 @@
 /**
  * Plugin Name: AI Optimizer & Exporter
  * Description: Exports posts and pages in a token-efficient XML format for LLM parsing, and provides SEO suggestions.
- * Version: 3.0.0
+ * Version: 3.0.1
  * Author: Forwwward
  */
 
@@ -14,7 +14,7 @@ use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 $myUpdateChecker = PucFactory::buildUpdateChecker(
     'https://github.com/forwwwardco/ai-optimizer-exporter',
     __FILE__,
-    'ai-optimizer-exporter'
+    'ai-optimizer-exporter-main'
 );
 
 if (! defined('ABSPATH')) exit;
