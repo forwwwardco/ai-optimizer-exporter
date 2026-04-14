@@ -3,7 +3,7 @@
 /**
  * Plugin Name: AI Optimizer Exporter
  * Description: Exports posts and pages in a token-efficient XML format for LLM parsing, and provides SEO suggestions.
- * Version: 5.1.0
+ * Version: 5.1.1
  * Author: Forwwward
  * Author URI:  https://forwwward.co
  */
@@ -213,7 +213,9 @@ function aie_export_page()
 
     $action = isset($_POST['aie_action']) ? sanitize_text_field($_POST['aie_action']) : '';
     $post_type = isset($_POST['aie_export_type']) ? sanitize_text_field($_POST['aie_export_type']) : 'post';
-    $skip_content = isset($_POST['aie_skip_content']);
+
+    // Check if the form was submitted. If not, default to true. 
+    $skip_content = isset($_POST['aie_export_nonce']) ? isset($_POST['aie_skip_content']) : true;
 
 ?>
     <div class="wrap">
@@ -237,7 +239,7 @@ function aie_export_page()
             <h3 style="margin-top:0;">Export Options</h3>
             <fieldset style="margin-bottom: 25px;">
                 <label style="font-size: 14px;">
-                    <input type="checkbox" name="aie_skip_content" value="1" <?php checked($skip_content); ?>> Skip page/post content (Speeds up export and saves tokens by only exporting metadata and AI descriptions)
+                    <input type="checkbox" name="aie_skip_content" value="1" <?php checked($skip_content); ?>> Skip page/post content (Speeds up export and saves tokens by substituting content with the AI description)
                 </label>
             </fieldset>
 
@@ -268,11 +270,13 @@ function aie_export_page()
                 $xml .= "    <schema>\n";
                 $xml .= "      <f tag='t'>Title</f>\n";
 
+                // Schema logic toggles based on skip_content
                 if (!$skip_content) {
                     $xml .= "      <f tag='b'>Body Content (Text only)</f>\n";
+                } else {
+                    $xml .= "      <f tag='aid'>AI Description</f>\n";
                 }
 
-                $xml .= "      <f tag='aid'>AI Description</f>\n";
                 $xml .= "      <f tag='mt'>Meta Title (Yoast or Post Title fallback)</f>\n";
                 $xml .= "      <f tag='md'>Meta Description (Yoast or Excerpt fallback)</f>\n";
                 $xml .= "      <f tag='kw'>Yoast Focus Keyword</f>\n";
@@ -309,11 +313,13 @@ function aie_export_page()
                     $xml .= "    <item>\n";
                     $xml .= "      <t>" . esc_html(get_the_title()) . "</t>\n";
 
+                    // Export logic toggles based on skip_content
                     if (!$skip_content) {
                         $xml .= "      <b>" . esc_html($content) . "</b>\n";
+                    } else {
+                        $xml .= "      <aid>" . esc_html($ai_desc) . "</aid>\n";
                     }
 
-                    $xml .= "      <aid>" . esc_html($ai_desc) . "</aid>\n";
                     $xml .= "      <mt>" . esc_html($final_title) . "</mt>\n";
                     $xml .= "      <md>" . esc_html($final_desc) . "</md>\n";
                     $xml .= "      <kw>" . esc_html($yoast_kw) . "</kw>\n";
