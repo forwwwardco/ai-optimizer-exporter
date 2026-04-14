@@ -12,9 +12,9 @@ require 'plugin-update-checker-master/plugin-update-checker.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $myUpdateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/user/repo-name/',
+    'https://github.com/forwwwardco/ai-optimizer-exporter',
     __FILE__,
-    'unique-plugin-slug'
+    'ai-optimizer-exporter'
 );
 
 if (! defined('ABSPATH')) exit;
