@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: AI Optimizer & Exporter
+ * Plugin Name: AI Optimizer Exporter
  * Description: Exports posts and pages in a token-efficient XML format for LLM parsing, and provides SEO suggestions.
  * Version: 4.0.0
  * Author: Forwwward
@@ -58,7 +58,7 @@ function aie_settings_page()
 
 ?>
     <div class="wrap">
-        <h1>AI Optimizer & Exporter</h1>
+        <h1>AI Optimizer Exporter</h1>
         <p>Export your published content into a token-optimized XML format or scan for missing SEO metadata.</p>
         <hr>
 
