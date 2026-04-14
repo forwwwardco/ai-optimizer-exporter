@@ -54,7 +54,7 @@ function aie_settings_page()
         <form method="post" action="" style="margin: 20px 0; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 4px; max-width: 650px;">
             <?php wp_nonce_field('aie_action_nonce', 'aie_nonce'); ?>
 
-            <h3 style="margin-top:0;">1. Select Content Type</h3>
+            <h3 style="margin-top:0;">Select Content Type</h3>
             <fieldset style="margin-bottom: 25px;">
                 <label style="margin-right: 20px; font-size: 14px;">
                     <input type="radio" name="aie_export_type" value="post" <?php checked($post_type, 'post'); ?>> Blog Articles (Posts)
@@ -64,7 +64,7 @@ function aie_settings_page()
                 </label>
             </fieldset>
 
-            <h3 style="margin-top:0;">2. Choose Action</h3>
+            <h3 style="margin-top:0;">Choose Action</h3>
             <div style="display: flex; gap: 10px;">
                 <button type="submit" name="aie_action" value="generate" class="button button-primary">Generate Export File</button>
                 <button type="submit" name="aie_action" value="suggestions" class="button button-secondary">Get SEO Suggestions</button>
