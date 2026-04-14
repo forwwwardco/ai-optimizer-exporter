@@ -200,11 +200,11 @@ function aie_settings_page()
                     wp_reset_postdata();
 
                     echo '<div style="max-width: 900px;">';
-                    echo '<h2 style="margin-top: 30px;">SEO Suggestions for Published ' . esc_html(ucfirst($post_type)) . 's</h2>';
 
                     if (empty($suggestions)) {
                         echo '<div class="notice notice-success"><p>🎉 Great job! All ' . $query->found_posts . ' published ' . esc_html($post_type) . 's have their Yoast Meta Title, Description, and Focus Keyword filled out.</p></div>';
                     } else {
+                        echo '<h2 style="margin-top: 30px;">SEO Suggestions for Published ' . esc_html(ucfirst($post_type)) . 's</h2>';
                         echo '<p>Found <strong>' . count($suggestions) . '</strong> published ' . esc_html($post_type) . 's missing crucial SEO metadata.</p>';
                         echo '<table class="wp-list-table widefat fixed striped" style="margin-top: 15px; border: 1px solid #ccd0d4;">';
                         echo '<thead><tr>';
